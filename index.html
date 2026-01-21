@@ -234,6 +234,100 @@
         }
 
 
+        /* Rotary Dial Styles */
+        .dial-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .dial-group label {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .dial-container {
+            width: 60px;
+            height: 60px;
+            position: relative;
+            user-select: none;
+        }
+
+        .dial-knob {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #e6e6e6, #ffffff);
+            box-shadow: 4px 4px 10px #d1d1d1, -4px -4px 10px #ffffff, inset 1px 1px 2px rgba(255,255,255,0.8);
+            cursor: grab;
+            position: relative;
+            transition: box-shadow 0.1s;
+        }
+
+        .dial-knob:active {
+            cursor: grabbing;
+            box-shadow: 2px 2px 6px #d1d1d1, -2px -2px 6px #ffffff, inset 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .dial-knob::before {
+            content: '';
+            position: absolute;
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 3px;
+            height: 12px;
+            background: #2d3748;
+            border-radius: 2px;
+        }
+
+        .dial-knob.current::before {
+            background: rgb(59, 130, 246);
+        }
+
+        .dial-knob.correction::before {
+            background: rgb(34, 197, 94);
+        }
+
+        .dial-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.75em;
+            font-weight: 600;
+            color: #4a5568;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .dial-ticks {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .dial-tick {
+            position: absolute;
+            width: 2px;
+            height: 5px;
+            background: #a0aec0;
+            left: 50%;
+            top: 1px;
+            transform-origin: 50% 29px;
+        }
+
+        .dial-tick.major {
+            height: 6px;
+            width: 2px;
+            background: #4a5568;
+        }
+
         @media (max-width: 768px) {
             .controls-row {
                 grid-template-columns: 1fr;
@@ -252,35 +346,13 @@
             <div class="config-section">
                 <h3 class="config-title current-title">Current Configuration</h3>
                 <div class="controls-row">
-                    <div class="control-group">
-                        <label for="currentMainJet">Main Jet</label>
-                        <select id="currentMainJet">
-                            <option value="80">80</option>
-                            <option value="85">85</option>
-                            <option value="90">90</option>
-                            <option value="95">95</option>
-                            <option value="100">100</option>
-                            <option value="105" selected>105</option>
-                            <option value="110">110</option>
-                            <option value="115">115</option>
-                            <option value="120">120</option>
-                            <option value="125">125</option>
-                            <option value="130">130</option>
-                            <option value="135">135</option>
-                            <option value="140">140</option>
-                            <option value="145">145</option>
-                            <option value="150">150</option>
-                            <option value="155">155</option>
-                            <option value="160">160</option>
-                            <option value="165">165</option>
-                            <option value="170">170</option>
-                            <option value="175">175</option>
-                            <option value="180">180</option>
-                            <option value="185">185</option>
-                            <option value="190">190</option>
-                            <option value="195">195</option>
-                            <option value="200">200</option>
-                        </select>
+                    <div class="dial-group">
+                        <label>Air Screw</label>
+                        <div class="dial-container" id="currentAirScrewDial" data-value="1.5">
+                            <div class="dial-ticks"></div>
+                            <div class="dial-knob current"></div>
+                            <div class="dial-value">1½</div>
+                        </div>
                     </div>
 
                     <div class="control-group">
@@ -368,15 +440,10 @@
                             <option value="280">280</option>
                         </select>
                     </div>
-                </div>
-            </div>
 
-            <div class="config-section">
-                <h3 class="config-title correction-title">Correction</h3>
-                <div class="controls-row correction-row">
                     <div class="control-group">
-                        <label for="correctionMainJet">Main Jet</label>
-                        <select id="correctionMainJet">
+                        <label for="currentMainJet">Main Jet</label>
+                        <select id="currentMainJet">
                             <option value="80">80</option>
                             <option value="85">85</option>
                             <option value="90">90</option>
@@ -403,6 +470,20 @@
                             <option value="195">195</option>
                             <option value="200">200</option>
                         </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3 class="config-title correction-title">Correction</h3>
+                <div class="controls-row correction-row">
+                    <div class="dial-group">
+                        <label>Air Screw</label>
+                        <div class="dial-container" id="correctionAirScrewDial" data-value="1.5">
+                            <div class="dial-ticks"></div>
+                            <div class="dial-knob correction"></div>
+                            <div class="dial-value">1½</div>
+                        </div>
                     </div>
 
                     <div class="control-group">
@@ -488,6 +569,37 @@
                             <option value="260">260</option>
                             <option value="270">270</option>
                             <option value="280">280</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="correctionMainJet">Main Jet</label>
+                        <select id="correctionMainJet">
+                            <option value="80">80</option>
+                            <option value="85">85</option>
+                            <option value="90">90</option>
+                            <option value="95">95</option>
+                            <option value="100">100</option>
+                            <option value="105" selected>105</option>
+                            <option value="110">110</option>
+                            <option value="115">115</option>
+                            <option value="120">120</option>
+                            <option value="125">125</option>
+                            <option value="130">130</option>
+                            <option value="135">135</option>
+                            <option value="140">140</option>
+                            <option value="145">145</option>
+                            <option value="150">150</option>
+                            <option value="155">155</option>
+                            <option value="160">160</option>
+                            <option value="165">165</option>
+                            <option value="170">170</option>
+                            <option value="175">175</option>
+                            <option value="180">180</option>
+                            <option value="185">185</option>
+                            <option value="190">190</option>
+                            <option value="195">195</option>
+                            <option value="200">200</option>
                         </select>
                     </div>
                 </div>
@@ -595,6 +707,11 @@
             return Math.exp(-throttle / 12);
         }
 
+        function airScrewWeight(throttle) {
+            // Air screw affects 0-12% throttle (idle zone), same decay as pilot jet
+            return Math.exp(-throttle / 12);
+        }
+
         function cutawayWeight(throttle) {
             // Bell curve centered at 20%, width 15
             return Math.exp(-Math.pow(throttle - 20, 2) / (2 * 15 * 15));
@@ -633,7 +750,7 @@
 
         // Calculate relative fuel delivery at a given throttle position
         // Returns a value where 1.0 = baseline fuel delivery
-        function calculateFuel(throttle, mainJet, pilotJet, slideCutaway, mainAirJet, needle, needleClip) {
+        function calculateFuel(throttle, mainJet, pilotJet, slideCutaway, mainAirJet, needle, needleClip, airScrew = 1.5) {
             // Base fuel curve - increases with throttle opening
             const baseFuel = 0.2 + (throttle / 100) * 0.8;
 
@@ -648,6 +765,13 @@
             // Main Air Jet: larger = more air bleed into fuel circuit = less fuel
             const majEffect = 1 - (mainAirJet - BASELINE.mainAirJet) / BASELINE.mainAirJet * 0.3;
 
+            // Air Screw effect: It's an AIR bleed screw
+            // Clockwise (fewer turns) = richer (less air bleed)
+            // Counter-clockwise (more turns) = leaner (more air bleed)
+            // Baseline at 1.5 turns = 1.0 (neutral)
+            // 0.5 turns = 1.06 (6% richer), 3.0 turns = 0.91 (9% leaner)
+            const airScrewEffect = 1.0 - (airScrew - 1.5) * 0.06;
+
             // Needle profile data
             const needleData = NEEDLES[needle] || NEEDLES['YY0'];
 
@@ -658,6 +782,7 @@
 
             // Apply weighted influence based on throttle position
             const pW = pilotWeight(throttle);
+            const asW = airScrewWeight(throttle);
             const cW = cutawayWeight(throttle);
             const dW = needleDWeight(throttle);      // Needle D: 1/8-1/4
             const clipW = needleClipWeight(throttle); // Needle clip: 1/4-1/2
@@ -670,6 +795,9 @@
 
             // Pilot jet effect
             fuelMultiplier *= 1 + (pilotFlowRatio - 1) * pW;
+
+            // Air screw effect (same zone as pilot jet)
+            fuelMultiplier *= 1 + (airScrewEffect - 1) * asW;
 
             // Slide cutaway effect
             fuelMultiplier *= 1 + (cutawayEffect - 1) * cW;
@@ -780,6 +908,7 @@
             const currentSlideCutaway = parseFloat(document.getElementById('currentSlideCutaway').value);
             const currentNeedle = document.getElementById('currentNeedle').value;
             const currentMAJ = parseFloat(document.getElementById('currentMAJ').value);
+            const currentAirScrew = parseFloat(document.getElementById('currentAirScrewDial').dataset.value);
 
             // Correction configuration
             const correctionMainJet = parseFloat(document.getElementById('correctionMainJet').value);
@@ -787,6 +916,7 @@
             const correctionSlideCutaway = parseFloat(document.getElementById('correctionSlideCutaway').value);
             const correctionNeedle = document.getElementById('correctionNeedle').value;
             const correctionMAJ = parseFloat(document.getElementById('correctionMAJ').value);
+            const correctionAirScrew = parseFloat(document.getElementById('correctionAirScrewDial').dataset.value);
 
             // Get needle data for clip counts
             const currentNeedleData = NEEDLES[currentNeedle] || NEEDLES['YY0'];
@@ -796,24 +926,24 @@
 
             // Calculate fuel at middle clip position for main lines
             const currentFuels = THROTTLE_POSITIONS.map(p =>
-                calculateFuel(p.value, currentMainJet, currentPilotJet, currentSlideCutaway, currentMAJ, currentNeedle, currentMidClip)
+                calculateFuel(p.value, currentMainJet, currentPilotJet, currentSlideCutaway, currentMAJ, currentNeedle, currentMidClip, currentAirScrew)
             );
             const correctionFuels = THROTTLE_POSITIONS.map(p =>
-                calculateFuel(p.value, correctionMainJet, correctionPilotJet, correctionSlideCutaway, correctionMAJ, correctionNeedle, correctionMidClip)
+                calculateFuel(p.value, correctionMainJet, correctionPilotJet, correctionSlideCutaway, correctionMAJ, correctionNeedle, correctionMidClip, correctionAirScrew)
             );
 
             // Calculate needle band ranges (clip 1 = richest, max clip = leanest)
             const currentClip1 = THROTTLE_POSITIONS.map(p =>
-                calculateFuel(p.value, currentMainJet, currentPilotJet, currentSlideCutaway, currentMAJ, currentNeedle, 1)
+                calculateFuel(p.value, currentMainJet, currentPilotJet, currentSlideCutaway, currentMAJ, currentNeedle, 1, currentAirScrew)
             );
             const currentClipMax = THROTTLE_POSITIONS.map(p =>
-                calculateFuel(p.value, currentMainJet, currentPilotJet, currentSlideCutaway, currentMAJ, currentNeedle, currentNeedleData.clips)
+                calculateFuel(p.value, currentMainJet, currentPilotJet, currentSlideCutaway, currentMAJ, currentNeedle, currentNeedleData.clips, currentAirScrew)
             );
             const correctionClip1 = THROTTLE_POSITIONS.map(p =>
-                calculateFuel(p.value, correctionMainJet, correctionPilotJet, correctionSlideCutaway, correctionMAJ, correctionNeedle, 1)
+                calculateFuel(p.value, correctionMainJet, correctionPilotJet, correctionSlideCutaway, correctionMAJ, correctionNeedle, 1, correctionAirScrew)
             );
             const correctionClipMax = THROTTLE_POSITIONS.map(p =>
-                calculateFuel(p.value, correctionMainJet, correctionPilotJet, correctionSlideCutaway, correctionMAJ, correctionNeedle, correctionNeedleData.clips)
+                calculateFuel(p.value, correctionMainJet, correctionPilotJet, correctionSlideCutaway, correctionMAJ, correctionNeedle, correctionNeedleData.clips, correctionAirScrew)
             );
 
             // Update chart datasets
@@ -933,6 +1063,9 @@
             document.getElementById('correctionSlideCutaway').value = document.getElementById('currentSlideCutaway').value;
             document.getElementById('correctionNeedle').value = document.getElementById('currentNeedle').value;
             document.getElementById('correctionMAJ').value = document.getElementById('currentMAJ').value;
+            // Copy air screw
+            const currentAirScrew = parseFloat(document.getElementById('currentAirScrewDial').dataset.value);
+            setDialValue('correctionAirScrewDial', currentAirScrew);
             saveSettings();
             updateVisualization();
         }
@@ -947,14 +1080,16 @@
                     pilotJet: document.getElementById('currentPilotJet').value,
                     slideCutaway: document.getElementById('currentSlideCutaway').value,
                     needle: document.getElementById('currentNeedle').value,
-                    maj: document.getElementById('currentMAJ').value
+                    maj: document.getElementById('currentMAJ').value,
+                    airScrew: document.getElementById('currentAirScrewDial').dataset.value
                 },
                 correction: {
                     mainJet: document.getElementById('correctionMainJet').value,
                     pilotJet: document.getElementById('correctionPilotJet').value,
                     slideCutaway: document.getElementById('correctionSlideCutaway').value,
                     needle: document.getElementById('correctionNeedle').value,
-                    maj: document.getElementById('correctionMAJ').value
+                    maj: document.getElementById('correctionMAJ').value,
+                    airScrew: document.getElementById('correctionAirScrewDial').dataset.value
                 }
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -972,6 +1107,9 @@
                     document.getElementById('currentSlideCutaway').value = settings.current.slideCutaway;
                     document.getElementById('currentNeedle').value = settings.current.needle;
                     document.getElementById('currentMAJ').value = settings.current.maj;
+                    if (settings.current.airScrew) {
+                        setDialValue('currentAirScrewDial', parseFloat(settings.current.airScrew));
+                    }
                 }
                 if (settings.correction) {
                     document.getElementById('correctionMainJet').value = settings.correction.mainJet;
@@ -979,6 +1117,9 @@
                     document.getElementById('correctionSlideCutaway').value = settings.correction.slideCutaway;
                     document.getElementById('correctionNeedle').value = settings.correction.needle;
                     document.getElementById('correctionMAJ').value = settings.correction.maj;
+                    if (settings.correction.airScrew) {
+                        setDialValue('correctionAirScrewDial', parseFloat(settings.correction.airScrew));
+                    }
                 }
             } catch (e) {
                 console.warn('Failed to load settings:', e);
@@ -990,8 +1131,174 @@
             updateVisualization();
         }
 
+        // Air Screw Dial Functions
+        const AIR_SCREW_MIN = 0.5;
+        const AIR_SCREW_MAX = 3.0;
+        const AIR_SCREW_STEP = 0.25;
+
+        // Convert turns value to rotation angle (degrees)
+        // CCW rotation like real carb: 0.5 turns = +135deg, 3.0 turns = -135deg
+        function turnsToAngle(turns) {
+            const normalized = (turns - AIR_SCREW_MIN) / (AIR_SCREW_MAX - AIR_SCREW_MIN);
+            return 135 - normalized * 270;
+        }
+
+        // Convert rotation angle to turns value (CCW = more turns)
+        function angleToTurns(angle) {
+            const normalized = (135 - angle) / 270;
+            let turns = AIR_SCREW_MIN + normalized * (AIR_SCREW_MAX - AIR_SCREW_MIN);
+            // Snap to step
+            turns = Math.round(turns / AIR_SCREW_STEP) * AIR_SCREW_STEP;
+            // Clamp to range
+            turns = Math.max(AIR_SCREW_MIN, Math.min(AIR_SCREW_MAX, turns));
+            return turns;
+        }
+
+        // Format value as fraction (e.g., 1.5 -> "1 1/2", 0.75 -> "3/4")
+        function formatAsFraction(value) {
+            const whole = Math.floor(value);
+            const frac = value - whole;
+
+            let fracStr = '';
+            if (Math.abs(frac - 0.25) < 0.01) fracStr = '¼';
+            else if (Math.abs(frac - 0.5) < 0.01) fracStr = '½';
+            else if (Math.abs(frac - 0.75) < 0.01) fracStr = '¾';
+
+            if (whole === 0) {
+                return fracStr || '0';
+            } else if (fracStr) {
+                return `${whole}${fracStr}`;
+            } else {
+                return `${whole}`;
+            }
+        }
+
+        // Set dial value and update visual
+        function setDialValue(dialId, value) {
+            const container = document.getElementById(dialId);
+            const knob = container.querySelector('.dial-knob');
+            const valueDisplay = container.querySelector('.dial-value');
+
+            container.dataset.value = value;
+            knob.style.transform = `rotate(${turnsToAngle(value)}deg)`;
+            valueDisplay.textContent = formatAsFraction(value);
+        }
+
+        // Initialize dial interaction
+        function initDial(dialId) {
+            const container = document.getElementById(dialId);
+            const knob = container.querySelector('.dial-knob');
+            const ticksContainer = container.querySelector('.dial-ticks');
+
+            // Create tick marks
+            const numTicks = (AIR_SCREW_MAX - AIR_SCREW_MIN) / AIR_SCREW_STEP;
+            for (let i = 0; i <= numTicks; i++) {
+                const tick = document.createElement('div');
+                tick.className = 'dial-tick' + (i % 4 === 0 ? ' major' : '');
+                const turns = AIR_SCREW_MIN + i * AIR_SCREW_STEP;
+                tick.style.transform = `translateX(-50%) rotate(${turnsToAngle(turns)}deg)`;
+                ticksContainer.appendChild(tick);
+            }
+
+            // Set initial position
+            const initialValue = parseFloat(container.dataset.value) || 1.5;
+            setDialValue(dialId, initialValue);
+
+            let isDragging = false;
+            let startAngle = 0;
+            let startValue = 0;
+
+            function getAngleFromEvent(e, rect) {
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI) + 90;
+            }
+
+            function handleStart(e) {
+                e.preventDefault();
+                isDragging = true;
+                const rect = container.getBoundingClientRect();
+                startAngle = getAngleFromEvent(e, rect);
+                startValue = parseFloat(container.dataset.value);
+                knob.style.cursor = 'grabbing';
+            }
+
+            function handleMove(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+
+                const rect = container.getBoundingClientRect();
+                const currentAngle = getAngleFromEvent(e, rect);
+                let deltaAngle = currentAngle - startAngle;
+
+                // Handle wrap-around
+                if (deltaAngle > 180) deltaAngle -= 360;
+                if (deltaAngle < -180) deltaAngle += 360;
+
+                // Convert delta to turns change (negative because CCW = more turns)
+                const deltaTurns = -deltaAngle / 270 * (AIR_SCREW_MAX - AIR_SCREW_MIN);
+                let newValue = startValue + deltaTurns;
+
+                // Clamp to range (before snapping to prevent overshoot)
+                newValue = Math.max(AIR_SCREW_MIN, Math.min(AIR_SCREW_MAX, newValue));
+
+                // If at limits, reset the start point to prevent accumulation
+                if (newValue === AIR_SCREW_MIN || newValue === AIR_SCREW_MAX) {
+                    startAngle = currentAngle;
+                    startValue = newValue;
+                }
+
+                // Snap to step
+                newValue = Math.round(newValue / AIR_SCREW_STEP) * AIR_SCREW_STEP;
+
+                setDialValue(dialId, newValue);
+            }
+
+            function handleEnd() {
+                if (!isDragging) return;
+                isDragging = false;
+                knob.style.cursor = 'grab';
+                onSettingChange();
+            }
+
+            // Mouse events
+            knob.addEventListener('mousedown', handleStart);
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleEnd);
+
+            // Touch events
+            knob.addEventListener('touchstart', handleStart, { passive: false });
+            document.addEventListener('touchmove', handleMove, { passive: false });
+            document.addEventListener('touchend', handleEnd);
+
+            // Scroll wheel event with accumulator for slower response
+            let scrollAccum = 0;
+            const SCROLL_THRESHOLD = 150; // pixels of scroll needed per step
+            container.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                scrollAccum += e.deltaY;
+
+                if (Math.abs(scrollAccum) >= SCROLL_THRESHOLD) {
+                    const currentValue = parseFloat(container.dataset.value);
+                    // Scroll up = CCW = more turns, scroll down = CW = fewer turns
+                    const delta = scrollAccum > 0 ? -AIR_SCREW_STEP : AIR_SCREW_STEP;
+                    let newValue = currentValue + delta;
+                    newValue = Math.max(AIR_SCREW_MIN, Math.min(AIR_SCREW_MAX, newValue));
+                    setDialValue(dialId, newValue);
+                    onSettingChange();
+                    scrollAccum = 0;
+                }
+            }, { passive: false });
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize air screw dials
+            initDial('currentAirScrewDial');
+            initDial('correctionAirScrewDial');
+
             loadSettings();
             initChart();
             updateVisualization();
