@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keihin CR26 Carburetor Tuning</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .controls-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #f7fafc;
+            border-radius: 12px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .control-group select {
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .control-group select:hover {
+            border-color: #667eea;
+        }
+
+        .control-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .data-table {
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        th {
+            background: #2d3748;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        .percentage {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            position: relative;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.05em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.9em;
+        }
+
+        .legend-line {
+            width: 30px;
+            height: 3px;
+            margin-right: 10px;
+            border-radius: 2px;
+        }
+
+        .legend-band {
+            width: 30px;
+            height: 16px;
+            margin-right: 10px;
+            border-radius: 3px;
+            opacity: 0.3;
+        }
+
+
+        .config-section {
+            margin-bottom: 20px;
+        }
+
+        .config-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 10px;
+            padding: 10px 15px;
+            border-radius: 8px 8px 0 0;
+            color: white;
+        }
+
+        .current-title {
+            background: rgb(59, 130, 246);
+        }
+
+        .correction-title {
+            background: rgb(34, 197, 94);
+        }
+
+        .config-section .controls-row {
+            border-radius: 0 0 12px 12px;
+        }
+
+        .config-section:first-of-type .controls-row {
+            border: 2px solid rgb(59, 130, 246);
+        }
+
+        .correction-row {
+            border: 2px solid rgb(34, 197, 94);
+        }
+
+
+        @media (max-width: 768px) {
+            .controls-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Keihin CR26 Carburetor Tuning</h1>
+            <p class="subtitle">Fuel Delivery Analysis</p>
+        </header>
+
+        <div class="main-content">
+            <div class="config-section">
+                <h3 class="config-title current-title">Current Configuration</h3>
+                <div class="controls-row">
+                    <div class="control-group">
+                        <label for="currentMainJet">Main Jet</label>
+                        <select id="currentMainJet">
+                            <option value="80">80</option>
+                            <option value="85">85</option>
+                            <option value="90">90</option>
+                            <option value="95">95</option>
+                            <option value="100">100</option>
+                            <option value="105" selected>105</option>
+                            <option value="110">110</option>
+                            <option value="115">115</option>
+                            <option value="120">120</option>
+                            <option value="125">125</option>
+                            <option value="130">130</option>
+                            <option value="135">135</option>
+                            <option value="140">140</option>
+                            <option value="145">145</option>
+                            <option value="150">150</option>
+                            <option value="155">155</option>
+                            <option value="160">160</option>
+                            <option value="165">165</option>
+                            <option value="170">170</option>
+                            <option value="175">175</option>
+                            <option value="180">180</option>
+                            <option value="185">185</option>
+                            <option value="190">190</option>
+                            <option value="195">195</option>
+                            <option value="200">200</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="currentPilotJet">Slow Jet</label>
+                        <select id="currentPilotJet">
+                            <option value="35">35</option>
+                            <option value="38">38</option>
+                            <option value="40">40</option>
+                            <option value="42">42</option>
+                            <option value="45">45</option>
+                            <option value="48">48</option>
+                            <option value="50">50</option>
+                            <option value="52">52</option>
+                            <option value="55">55</option>
+                            <option value="58">58</option>
+                            <option value="60">60</option>
+                            <option value="62">62</option>
+                            <option value="65" selected>65</option>
+                            <option value="68">68</option>
+                            <option value="70">70</option>
+                            <option value="72">72</option>
+                            <option value="75">75</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="currentSlideCutaway">Cutaway</label>
+                        <select id="currentSlideCutaway">
+                            <option value="1.0">1.0</option>
+                            <option value="1.5">1.5</option>
+                            <option value="2.0" selected>2.0</option>
+                            <option value="2.5">2.5</option>
+                            <option value="3.0">3.0</option>
+                            <option value="3.5">3.5</option>
+                            <option value="4.0">4.0</option>
+                            <option value="4.5">4.5</option>
+                            <option value="5.0">5.0</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="currentNeedle">Needle</label>
+                        <select id="currentNeedle">
+                            <optgroup label="YY Series (longer)">
+                                <option value="YY5">YY5 (Rich)</option>
+                                <option value="YY6">YY6</option>
+                                <option value="YY7">YY7</option>
+                                <option value="YY8" selected>YY8</option>
+                                <option value="YY9">YY9</option>
+                                <option value="YY0">YY0 (CR26 std)</option>
+                                <option value="YY1">YY1</option>
+                                <option value="YY2">YY2</option>
+                                <option value="YY3">YY3 (Lean)</option>
+                            </optgroup>
+                            <optgroup label="Y Series (shorter)">
+                                <option value="Y5">Y5 (Rich)</option>
+                                <option value="Y6">Y6</option>
+                                <option value="Y7">Y7</option>
+                                <option value="Y8">Y8</option>
+                                <option value="Y9">Y9</option>
+                                <option value="Y0">Y0</option>
+                                <option value="Y1">Y1</option>
+                                <option value="Y2">Y2</option>
+                                <option value="Y3">Y3 (Lean)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="currentMAJ">Air Jet</label>
+                        <select id="currentMAJ">
+                            <option value="150">150</option>
+                            <option value="160">160</option>
+                            <option value="170">170</option>
+                            <option value="180">180</option>
+                            <option value="190">190</option>
+                            <option value="200">200</option>
+                            <option value="210">210</option>
+                            <option value="220" selected>220</option>
+                            <option value="230">230</option>
+                            <option value="240">240</option>
+                            <option value="250">250</option>
+                            <option value="260">260</option>
+                            <option value="270">270</option>
+                            <option value="280">280</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3 class="config-title correction-title">Correction</h3>
+                <div class="controls-row correction-row">
+                    <div class="control-group">
+                        <label for="correctionMainJet">Main Jet</label>
+                        <select id="correctionMainJet">
+                            <option value="80">80</option>
+                            <option value="85">85</option>
+                            <option value="90">90</option>
+                            <option value="95">95</option>
+                            <option value="100">100</option>
+                            <option value="105" selected>105</option>
+                            <option value="110">110</option>
+                            <option value="115">115</option>
+                            <option value="120">120</option>
+                            <option value="125">125</option>
+                            <option value="130">130</option>
+                            <option value="135">135</option>
+                            <option value="140">140</option>
+                            <option value="145">145</option>
+                            <option value="150">150</option>
+                            <option value="155">155</option>
+                            <option value="160">160</option>
+                            <option value="165">165</option>
+                            <option value="170">170</option>
+                            <option value="175">175</option>
+                            <option value="180">180</option>
+                            <option value="185">185</option>
+                            <option value="190">190</option>
+                            <option value="195">195</option>
+                            <option value="200">200</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="correctionPilotJet">Slow Jet</label>
+                        <select id="correctionPilotJet">
+                            <option value="35">35</option>
+                            <option value="38">38</option>
+                            <option value="40">40</option>
+                            <option value="42">42</option>
+                            <option value="45">45</option>
+                            <option value="48">48</option>
+                            <option value="50">50</option>
+                            <option value="52">52</option>
+                            <option value="55">55</option>
+                            <option value="58">58</option>
+                            <option value="60">60</option>
+                            <option value="62">62</option>
+                            <option value="65" selected>65</option>
+                            <option value="68">68</option>
+                            <option value="70">70</option>
+                            <option value="72">72</option>
+                            <option value="75">75</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="correctionSlideCutaway">Cutaway</label>
+                        <select id="correctionSlideCutaway">
+                            <option value="1.0">1.0</option>
+                            <option value="1.5">1.5</option>
+                            <option value="2.0" selected>2.0</option>
+                            <option value="2.5">2.5</option>
+                            <option value="3.0">3.0</option>
+                            <option value="3.5">3.5</option>
+                            <option value="4.0">4.0</option>
+                            <option value="4.5">4.5</option>
+                            <option value="5.0">5.0</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="correctionNeedle">Needle</label>
+                        <select id="correctionNeedle">
+                            <optgroup label="YY Series (longer)">
+                                <option value="YY5">YY5 (Rich)</option>
+                                <option value="YY6">YY6</option>
+                                <option value="YY7">YY7</option>
+                                <option value="YY8" selected>YY8</option>
+                                <option value="YY9">YY9</option>
+                                <option value="YY0">YY0 (CR26 std)</option>
+                                <option value="YY1">YY1</option>
+                                <option value="YY2">YY2</option>
+                                <option value="YY3">YY3 (Lean)</option>
+                            </optgroup>
+                            <optgroup label="Y Series (shorter)">
+                                <option value="Y5">Y5 (Rich)</option>
+                                <option value="Y6">Y6</option>
+                                <option value="Y7">Y7</option>
+                                <option value="Y8">Y8</option>
+                                <option value="Y9">Y9</option>
+                                <option value="Y0">Y0</option>
+                                <option value="Y1">Y1</option>
+                                <option value="Y2">Y2</option>
+                                <option value="Y3">Y3 (Lean)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="correctionMAJ">Air Jet</label>
+                        <select id="correctionMAJ">
+                            <option value="150">150</option>
+                            <option value="160">160</option>
+                            <option value="170">170</option>
+                            <option value="180">180</option>
+                            <option value="190">190</option>
+                            <option value="200">200</option>
+                            <option value="210">210</option>
+                            <option value="220" selected>220</option>
+                            <option value="230">230</option>
+                            <option value="240">240</option>
+                            <option value="250">250</option>
+                            <option value="260">260</option>
+                            <option value="270">270</option>
+                            <option value="280">280</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-row">
+                <button onclick="copyCurrentToCorrection()">Copy Current → Correction</button>
+            </div>
+
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Throttle Position</th>
+                            <th>Current Fuel</th>
+                            <th>Correction Fuel</th>
+                            <th>Difference</th>
+                            <th>Primary Component</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="flowChart"></canvas>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-line" style="background: rgb(59, 130, 246);"></div>
+                    <span id="currentClipLabel">Current (clip 4)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: rgb(34, 197, 94);"></div>
+                    <span id="correctionClipLabel">Correction (clip 4)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-band" style="background: rgb(59, 130, 246);"></div>
+                    <span id="currentBandLabel">Current clip range (1-7)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-band" style="background: rgb(34, 197, 94);"></div>
+                    <span id="correctionBandLabel">Correction clip range (1-7)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Throttle positions
+        const THROTTLE_POSITIONS = [
+            { label: 'Idle', value: 0 },
+            { label: '1/4 Throttle', value: 25 },
+            { label: '1/2 Throttle', value: 50 },
+            { label: '3/4 Throttle', value: 75 },
+            { label: 'WOT', value: 100 }
+        ];
+
+        // CR26 stock jetting specs (from Keihin manual)
+        const BASELINE = {
+            mainJet: 105,
+            pilotJet: 65,      // "Slow Jet" in manual
+            slideCutaway: 2.0, // "Throttle Valve" in manual
+            mainAirJet: 220,   // "Air Jet" in manual
+            needle: 'YY0',     // CR26 stock needle
+            needleClip: 4
+        };
+
+        // Keihin CR Special needle profiles
+        // Diameter (D) determines richness: smaller D = more fuel flow = richer
+        // YY series is 2.7mm longer than Y series (same diameters)
+        // Fuel factor (for D) calculated relative to YY0 (CR26 stock, D=2.805)
+        // Taper angles are identical within Y/YY series (0°50', 3°30', 1°30')
+        // YY series: 7 clip positions; Y series: 5 clip positions
+        const NEEDLES = {
+            // YY Series (longer, 7 clips)
+            'YY5': { name: 'YY5', d: 2.755, fuel: 1.10, taper: 1.00, clips: 7 },  // Richest
+            'YY6': { name: 'YY6', d: 2.765, fuel: 1.08, taper: 1.00, clips: 7 },
+            'YY7': { name: 'YY7', d: 2.775, fuel: 1.06, taper: 1.00, clips: 7 },
+            'YY8': { name: 'YY8', d: 2.785, fuel: 1.04, taper: 1.00, clips: 7 },
+            'YY9': { name: 'YY9', d: 2.795, fuel: 1.02, taper: 1.00, clips: 7 },
+            'YY0': { name: 'YY0', d: 2.805, fuel: 1.00, taper: 1.00, clips: 7 },  // CR26 stock
+            'YY1': { name: 'YY1', d: 2.815, fuel: 0.98, taper: 1.00, clips: 7 },
+            'YY2': { name: 'YY2', d: 2.825, fuel: 0.96, taper: 1.00, clips: 7 },
+            'YY3': { name: 'YY3', d: 2.835, fuel: 0.94, taper: 1.00, clips: 7 },  // Leanest
+            // Y Series (shorter, 5 clips)
+            'Y5':  { name: 'Y5',  d: 2.755, fuel: 1.10, taper: 1.00, clips: 5 },
+            'Y6':  { name: 'Y6',  d: 2.765, fuel: 1.08, taper: 1.00, clips: 5 },
+            'Y7':  { name: 'Y7',  d: 2.775, fuel: 1.06, taper: 1.00, clips: 5 },
+            'Y8':  { name: 'Y8',  d: 2.785, fuel: 1.04, taper: 1.00, clips: 5 },
+            'Y9':  { name: 'Y9',  d: 2.795, fuel: 1.02, taper: 1.00, clips: 5 },
+            'Y0':  { name: 'Y0',  d: 2.805, fuel: 1.00, taper: 1.00, clips: 5 },
+            'Y1':  { name: 'Y1',  d: 2.815, fuel: 0.98, taper: 1.00, clips: 5 },
+            'Y2':  { name: 'Y2',  d: 2.825, fuel: 0.96, taper: 1.00, clips: 5 },
+            'Y3':  { name: 'Y3',  d: 2.835, fuel: 0.94, taper: 1.00, clips: 5 }
+        };
+
+        let chart;
+
+        // Influence weighting functions
+        function pilotWeight(throttle) {
+            // Strong at idle, fades by ~30%
+            return Math.exp(-throttle / 12);
+        }
+
+        function cutawayWeight(throttle) {
+            // Bell curve centered at 20%, width 15
+            return Math.exp(-Math.pow(throttle - 20, 2) / (2 * 15 * 15));
+        }
+
+        // Needle D (diameter): affects 1/8-1/4 throttle (12-25%)
+        function needleDWeight(throttle) {
+            return Math.exp(-Math.pow(throttle - 18, 2) / (2 * 10 * 10));
+        }
+
+        // Needle Clip/L1: affects 1/4-1/2 throttle (25-50%)
+        function needleClipWeight(throttle) {
+            return Math.exp(-Math.pow(throttle - 37, 2) / (2 * 15 * 15));
+        }
+
+        // Needle Taper: affects 1/2-3/4 throttle (50-75%)
+        function needleTaperWeight(throttle) {
+            return Math.exp(-Math.pow(throttle - 62, 2) / (2 * 15 * 15));
+        }
+
+        function mainWeight(throttle) {
+            // Smooth step from 60 to 100
+            if (throttle <= 60) return 0;
+            if (throttle >= 100) return 1;
+            const t = (throttle - 60) / 40;
+            return t * t * (3 - 2 * t); // smoothstep
+        }
+
+        function majWeight(throttle) {
+            // Smooth step from 70 to 100
+            if (throttle <= 70) return 0;
+            if (throttle >= 100) return 1;
+            const t = (throttle - 70) / 30;
+            return t * t * (3 - 2 * t); // smoothstep
+        }
+
+        // Calculate relative fuel delivery at a given throttle position
+        // Returns a value where 1.0 = baseline fuel delivery
+        function calculateFuel(throttle, mainJet, pilotJet, slideCutaway, mainAirJet, needle, needleClip) {
+            // Base fuel curve - increases with throttle opening
+            const baseFuel = 0.2 + (throttle / 100) * 0.8;
+
+            // Calculate flow ratios using diameter² relationship
+            // Larger jet = more fuel flow (area ∝ diameter²)
+            const pilotFlowRatio = Math.pow(pilotJet / BASELINE.pilotJet, 2);
+            const mainFlowRatio = Math.pow(mainJet / BASELINE.mainJet, 2);
+
+            // Slide cutaway: larger = more air = less relative fuel
+            const cutawayEffect = 1 - (slideCutaway - BASELINE.slideCutaway) * 0.08;
+
+            // Main Air Jet: larger = more air bleed into fuel circuit = less fuel
+            const majEffect = 1 - (mainAirJet - BASELINE.mainAirJet) / BASELINE.mainAirJet * 0.3;
+
+            // Needle profile data
+            const needleData = NEEDLES[needle] || NEEDLES['YY0'];
+
+            // Needle clip effect: 1 = highest (richest), max clip = lowest (leanest)
+            // Each clip position changes fuel by ~3-5%
+            const midClip = Math.ceil(needleData.clips / 2);
+            const needleClipEffect = 1 + (midClip - needleClip) * 0.04;
+
+            // Apply weighted influence based on throttle position
+            const pW = pilotWeight(throttle);
+            const cW = cutawayWeight(throttle);
+            const dW = needleDWeight(throttle);      // Needle D: 1/8-1/4
+            const clipW = needleClipWeight(throttle); // Needle clip: 1/4-1/2
+            const taperW = needleTaperWeight(throttle); // Needle taper: 1/2-3/4
+            const mW = mainWeight(throttle);
+            const maW = majWeight(throttle);
+
+            // Combine effects with their influence weights
+            let fuelMultiplier = 1.0;
+
+            // Pilot jet effect
+            fuelMultiplier *= 1 + (pilotFlowRatio - 1) * pW;
+
+            // Slide cutaway effect
+            fuelMultiplier *= 1 + (cutawayEffect - 1) * cW;
+
+            // Needle diameter effect (1/8-1/4 throttle)
+            fuelMultiplier *= 1 + (needleData.fuel - 1) * dW;
+
+            // Needle clip effect (1/4-1/2 throttle)
+            fuelMultiplier *= 1 + (needleClipEffect - 1) * clipW;
+
+            // Needle taper effect (1/2-3/4 throttle)
+            fuelMultiplier *= 1 + (needleData.taper - 1) * taperW;
+
+            // Main jet effect
+            fuelMultiplier *= 1 + (mainFlowRatio - 1) * mW;
+
+            // MAJ effect (reduces fuel at high throttle)
+            fuelMultiplier *= 1 + (majEffect - 1) * maW;
+
+            return baseFuel * fuelMultiplier;
+        }
+
+        // Get primary component affecting this throttle position
+        // Based on chart from Keihin CR-Special manual (page 4)
+        function getPrimaryComponent(throttle) {
+            if (throttle <= 12) return 'Air Screw, Slow Jet';
+            if (throttle <= 25) return 'Cutaway, Needle D';
+            if (throttle <= 50) return 'Needle Clip/L1';
+            if (throttle <= 75) return 'Needle Taper';
+            return 'Main Jet, Air Jet';
+        }
+
+        // Initialize chart
+        function initChart() {
+            const ctx = document.getElementById('flowChart').getContext('2d');
+
+            Chart.register(ChartDataLabels);
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: THROTTLE_POSITIONS.map(p => p.label),
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    aspectRatio: 2.5,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.dataset.label && !context.dataset.label.includes('Band')) {
+                                        return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
+                                    }
+                                    return null;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Throttle Position',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        y: {
+                            position: 'left',
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Relative Fuel Delivery',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            min: 0
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update chart and table
+        function updateVisualization() {
+            // Current configuration
+            const currentMainJet = parseFloat(document.getElementById('currentMainJet').value);
+            const currentPilotJet = parseFloat(document.getElementById('currentPilotJet').value);
+            const currentSlideCutaway = parseFloat(document.getElementById('currentSlideCutaway').value);
+            const currentNeedle = document.getElementById('currentNeedle').value;
+            const currentMAJ = parseFloat(document.getElementById('currentMAJ').value);
+
+            // Correction configuration
+            const correctionMainJet = parseFloat(document.getElementById('correctionMainJet').value);
+            const correctionPilotJet = parseFloat(document.getElementById('correctionPilotJet').value);
+            const correctionSlideCutaway = parseFloat(document.getElementById('correctionSlideCutaway').value);
+            const correctionNeedle = document.getElementById('correctionNeedle').value;
+            const correctionMAJ = parseFloat(document.getElementById('correctionMAJ').value);
+
+            // Get needle data for clip counts
+            const currentNeedleData = NEEDLES[currentNeedle] || NEEDLES['YY0'];
+            const correctionNeedleData = NEEDLES[correctionNeedle] || NEEDLES['YY0'];
+            const currentMidClip = Math.ceil(currentNeedleData.clips / 2);
+            const correctionMidClip = Math.ceil(correctionNeedleData.clips / 2);
+
+            // Calculate fuel at middle clip position for main lines
+            const currentFuels = THROTTLE_POSITIONS.map(p =>
+                calculateFuel(p.value, currentMainJet, currentPilotJet, currentSlideCutaway, currentMAJ, currentNeedle, currentMidClip)
+            );
+            const correctionFuels = THROTTLE_POSITIONS.map(p =>
+                calculateFuel(p.value, correctionMainJet, correctionPilotJet, correctionSlideCutaway, correctionMAJ, correctionNeedle, correctionMidClip)
+            );
+
+            // Calculate needle band ranges (clip 1 = richest, max clip = leanest)
+            const currentClip1 = THROTTLE_POSITIONS.map(p =>
+                calculateFuel(p.value, currentMainJet, currentPilotJet, currentSlideCutaway, currentMAJ, currentNeedle, 1)
+            );
+            const currentClipMax = THROTTLE_POSITIONS.map(p =>
+                calculateFuel(p.value, currentMainJet, currentPilotJet, currentSlideCutaway, currentMAJ, currentNeedle, currentNeedleData.clips)
+            );
+            const correctionClip1 = THROTTLE_POSITIONS.map(p =>
+                calculateFuel(p.value, correctionMainJet, correctionPilotJet, correctionSlideCutaway, correctionMAJ, correctionNeedle, 1)
+            );
+            const correctionClipMax = THROTTLE_POSITIONS.map(p =>
+                calculateFuel(p.value, correctionMainJet, correctionPilotJet, correctionSlideCutaway, correctionMAJ, correctionNeedle, correctionNeedleData.clips)
+            );
+
+            // Update chart datasets
+            chart.data.datasets = [
+                // Current needle band (fill between clip 1 and clip max)
+                {
+                    label: 'Current Band Upper',
+                    data: currentClipMax,
+                    borderColor: 'rgba(59, 130, 246, 0.3)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                    borderWidth: 1,
+                    borderDash: [4, 4],
+                    tension: 0.4,
+                    fill: '+1',
+                    pointRadius: 0,
+                    pointHoverRadius: 0
+                },
+                {
+                    label: 'Current Band Lower',
+                    data: currentClip1,
+                    borderColor: 'rgba(59, 130, 246, 0.3)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    borderDash: [4, 4],
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 0,
+                    pointHoverRadius: 0
+                },
+                // Correction needle band
+                {
+                    label: 'Correction Band Upper',
+                    data: correctionClipMax,
+                    borderColor: 'rgba(34, 197, 94, 0.3)',
+                    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                    borderWidth: 1,
+                    borderDash: [4, 4],
+                    tension: 0.4,
+                    fill: '+1',
+                    pointRadius: 0,
+                    pointHoverRadius: 0
+                },
+                {
+                    label: 'Correction Band Lower',
+                    data: correctionClip1,
+                    borderColor: 'rgba(34, 197, 94, 0.3)',
+                    backgroundColor: 'transparent',
+                    borderWidth: 1,
+                    borderDash: [4, 4],
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 0,
+                    pointHoverRadius: 0
+                },
+                // Main lines at clip 4
+                {
+                    label: 'Current',
+                    data: currentFuels,
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                },
+                {
+                    label: 'Correction',
+                    data: correctionFuels,
+                    borderColor: 'rgb(34, 197, 94)',
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: false,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }
+            ];
+
+            chart.update();
+
+            // Update legend labels
+            document.getElementById('currentClipLabel').textContent = `Current (clip ${currentMidClip})`;
+            document.getElementById('correctionClipLabel').textContent = `Correction (clip ${correctionMidClip})`;
+            document.getElementById('currentBandLabel').textContent = `Current clip range (1-${currentNeedleData.clips})`;
+            document.getElementById('correctionBandLabel').textContent = `Correction clip range (1-${correctionNeedleData.clips})`;
+
+            // Update table
+            const tableBody = document.getElementById('dataTableBody');
+            tableBody.innerHTML = '';
+
+            THROTTLE_POSITIONS.forEach((pos, i) => {
+                const currentFuel = currentFuels[i];
+                const correctionFuel = correctionFuels[i];
+                const diff = correctionFuel - currentFuel;
+                const diffPct = currentFuel > 0 ? ((diff / currentFuel) * 100) : 0;
+                const component = getPrimaryComponent(pos.value);
+
+                const row = document.createElement('tr');
+                const diffColor = diff > 0.01 ? 'color: #16a34a;' : diff < -0.01 ? 'color: #dc2626;' : '';
+                const diffSign = diff > 0 ? '+' : '';
+                row.innerHTML = `
+                    <td><strong>${pos.label}</strong></td>
+                    <td style="color: rgb(59, 130, 246);">${currentFuel.toFixed(3)}</td>
+                    <td style="color: rgb(34, 197, 94);">${correctionFuel.toFixed(3)}</td>
+                    <td style="${diffColor}">${diffSign}${diffPct.toFixed(1)}%</td>
+                    <td>${component}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Copy current to correction
+        function copyCurrentToCorrection() {
+            document.getElementById('correctionMainJet').value = document.getElementById('currentMainJet').value;
+            document.getElementById('correctionPilotJet').value = document.getElementById('currentPilotJet').value;
+            document.getElementById('correctionSlideCutaway').value = document.getElementById('currentSlideCutaway').value;
+            document.getElementById('correctionNeedle').value = document.getElementById('currentNeedle').value;
+            document.getElementById('correctionMAJ').value = document.getElementById('currentMAJ').value;
+            saveSettings();
+            updateVisualization();
+        }
+
+        // LocalStorage functions
+        const STORAGE_KEY = 'keihinCR26Settings';
+
+        function saveSettings() {
+            const settings = {
+                current: {
+                    mainJet: document.getElementById('currentMainJet').value,
+                    pilotJet: document.getElementById('currentPilotJet').value,
+                    slideCutaway: document.getElementById('currentSlideCutaway').value,
+                    needle: document.getElementById('currentNeedle').value,
+                    maj: document.getElementById('currentMAJ').value
+                },
+                correction: {
+                    mainJet: document.getElementById('correctionMainJet').value,
+                    pilotJet: document.getElementById('correctionPilotJet').value,
+                    slideCutaway: document.getElementById('correctionSlideCutaway').value,
+                    needle: document.getElementById('correctionNeedle').value,
+                    maj: document.getElementById('correctionMAJ').value
+                }
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (!saved) return;
+
+            try {
+                const settings = JSON.parse(saved);
+                if (settings.current) {
+                    document.getElementById('currentMainJet').value = settings.current.mainJet;
+                    document.getElementById('currentPilotJet').value = settings.current.pilotJet;
+                    document.getElementById('currentSlideCutaway').value = settings.current.slideCutaway;
+                    document.getElementById('currentNeedle').value = settings.current.needle;
+                    document.getElementById('currentMAJ').value = settings.current.maj;
+                }
+                if (settings.correction) {
+                    document.getElementById('correctionMainJet').value = settings.correction.mainJet;
+                    document.getElementById('correctionPilotJet').value = settings.correction.pilotJet;
+                    document.getElementById('correctionSlideCutaway').value = settings.correction.slideCutaway;
+                    document.getElementById('correctionNeedle').value = settings.correction.needle;
+                    document.getElementById('correctionMAJ').value = settings.correction.maj;
+                }
+            } catch (e) {
+                console.warn('Failed to load settings:', e);
+            }
+        }
+
+        function onSettingChange() {
+            saveSettings();
+            updateVisualization();
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+            initChart();
+            updateVisualization();
+
+            // Add event listeners for current configuration
+            document.getElementById('currentMainJet').addEventListener('change', onSettingChange);
+            document.getElementById('currentPilotJet').addEventListener('change', onSettingChange);
+            document.getElementById('currentSlideCutaway').addEventListener('change', onSettingChange);
+            document.getElementById('currentNeedle').addEventListener('change', onSettingChange);
+            document.getElementById('currentMAJ').addEventListener('change', onSettingChange);
+
+            // Add event listeners for correction configuration
+            document.getElementById('correctionMainJet').addEventListener('change', onSettingChange);
+            document.getElementById('correctionPilotJet').addEventListener('change', onSettingChange);
+            document.getElementById('correctionSlideCutaway').addEventListener('change', onSettingChange);
+            document.getElementById('correctionNeedle').addEventListener('change', onSettingChange);
+            document.getElementById('correctionMAJ').addEventListener('change', onSettingChange);
+        });
+    </script>
+</body>
+</html>
