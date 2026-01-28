@@ -6,6 +6,7 @@
     <title>Keihin CR26 Carburetor Tuning</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -328,6 +329,42 @@
             background: #4a5568;
         }
 
+        .warning-panel {
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            border-left: 4px solid rgb(245, 158, 11);
+            background: rgba(245, 158, 11, 0.08);
+        }
+
+        .warning-panel.severe {
+            border-left-color: rgb(220, 38, 38);
+            background: rgba(220, 38, 38, 0.08);
+        }
+
+        .warning-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-size: 1.05em;
+        }
+
+        .warning-item {
+            padding: 4px 0;
+            font-size: 0.95em;
+        }
+
+        .warning-icon {
+            margin-right: 4px;
+        }
+
+        .warning-icon.high {
+            color: rgb(220, 38, 38);
+        }
+
+        .warning-icon.medium {
+            color: rgb(245, 158, 11);
+        }
+
         @media (max-width: 768px) {
             .controls-row {
                 grid-template-columns: 1fr;
@@ -625,6 +662,8 @@
                 </table>
             </div>
 
+            <div id="warningPanel" class="warning-panel" style="display: none;"></div>
+
             <div class="chart-container">
                 <canvas id="flowChart"></canvas>
             </div>
@@ -670,11 +709,15 @@
             needleClip: 4
         };
 
+        const FLAT_SPOT_DIP_THRESHOLD = 0.03;    // 3% valley depth
+        const FLAT_SPOT_GRADIENT_THRESHOLD = 0.003; // gradient discontinuity
+
         // Keihin CR Special needle profiles
         // Diameter (D) determines richness: smaller D = more fuel flow = richer
         // YY series is 2.7mm longer than Y series (same diameters)
         // Fuel factor (for D) calculated relative to YY0 (CR26 stock, D=2.805)
         // Taper angles are identical within Y/YY series (0°50', 3°30', 1°30')
+        // Y series has shorter taper segments, sitting shallower in needle jet → ~4% less fuel in taper zone (50-75% throttle)
         // YY series: 7 clip positions; Y series: 5 clip positions
         const NEEDLES = {
             // YY Series (longer, 7 clips)
@@ -688,15 +731,15 @@
             'YY2': { name: 'YY2', d: 2.825, fuel: 0.96, taper: 1.00, clips: 7 },
             'YY3': { name: 'YY3', d: 2.835, fuel: 0.94, taper: 1.00, clips: 7 },  // Leanest
             // Y Series (shorter, 5 clips)
-            'Y5':  { name: 'Y5',  d: 2.755, fuel: 1.10, taper: 1.00, clips: 5 },
-            'Y6':  { name: 'Y6',  d: 2.765, fuel: 1.08, taper: 1.00, clips: 5 },
-            'Y7':  { name: 'Y7',  d: 2.775, fuel: 1.06, taper: 1.00, clips: 5 },
-            'Y8':  { name: 'Y8',  d: 2.785, fuel: 1.04, taper: 1.00, clips: 5 },
-            'Y9':  { name: 'Y9',  d: 2.795, fuel: 1.02, taper: 1.00, clips: 5 },
-            'Y0':  { name: 'Y0',  d: 2.805, fuel: 1.00, taper: 1.00, clips: 5 },
-            'Y1':  { name: 'Y1',  d: 2.815, fuel: 0.98, taper: 1.00, clips: 5 },
-            'Y2':  { name: 'Y2',  d: 2.825, fuel: 0.96, taper: 1.00, clips: 5 },
-            'Y3':  { name: 'Y3',  d: 2.835, fuel: 0.94, taper: 1.00, clips: 5 }
+            'Y5':  { name: 'Y5',  d: 2.755, fuel: 1.10, taper: 0.96, clips: 5 },
+            'Y6':  { name: 'Y6',  d: 2.765, fuel: 1.08, taper: 0.96, clips: 5 },
+            'Y7':  { name: 'Y7',  d: 2.775, fuel: 1.06, taper: 0.96, clips: 5 },
+            'Y8':  { name: 'Y8',  d: 2.785, fuel: 1.04, taper: 0.96, clips: 5 },
+            'Y9':  { name: 'Y9',  d: 2.795, fuel: 1.02, taper: 0.96, clips: 5 },
+            'Y0':  { name: 'Y0',  d: 2.805, fuel: 1.00, taper: 0.96, clips: 5 },
+            'Y1':  { name: 'Y1',  d: 2.815, fuel: 0.98, taper: 0.96, clips: 5 },
+            'Y2':  { name: 'Y2',  d: 2.825, fuel: 0.96, taper: 0.96, clips: 5 },
+            'Y3':  { name: 'Y3',  d: 2.835, fuel: 0.94, taper: 0.96, clips: 5 }
         };
 
         let chart;
@@ -820,6 +863,151 @@
             return baseFuel * fuelMultiplier;
         }
 
+        // Detect flat spots and bogs in the correction curve relative to current
+        function detectFlatSpots(currentConfig, correctionConfig) {
+            const numPoints = 51;
+            const warnings = [];
+            const ratios = [];
+
+            // Sample correction/current ratio at 2% intervals
+            for (let i = 0; i < numPoints; i++) {
+                const throttle = (i / (numPoints - 1)) * 100;
+                const currentFuel = calculateFuel(throttle, currentConfig.mainJet, currentConfig.pilotJet, currentConfig.slideCutaway, currentConfig.maj, currentConfig.needle, currentConfig.clip, currentConfig.airScrew);
+                const correctionFuel = calculateFuel(throttle, correctionConfig.mainJet, correctionConfig.pilotJet, correctionConfig.slideCutaway, correctionConfig.maj, correctionConfig.needle, correctionConfig.clip, correctionConfig.airScrew);
+                ratios.push({ throttle, ratio: correctionFuel / currentFuel });
+            }
+
+            // Detect valleys (fuel dips then rises = classic bog)
+            for (let i = 1; i < ratios.length - 1; i++) {
+                const prev = ratios[i - 1].ratio;
+                const curr = ratios[i].ratio;
+                const next = ratios[i + 1].ratio;
+
+                // Valley: current point is lower than both neighbors
+                if (curr < prev && curr < next) {
+                    const depth = Math.min(prev - curr, next - curr);
+                    if (depth >= FLAT_SPOT_DIP_THRESHOLD) {
+                        const severity = depth >= 0.06 ? 'high' : 'medium';
+                        warnings.push({
+                            type: 'valley',
+                            severity,
+                            throttleStart: ratios[Math.max(0, i - 3)].throttle,
+                            throttleEnd: ratios[Math.min(ratios.length - 1, i + 3)].throttle,
+                            throttleCenter: ratios[i].throttle,
+                            depth,
+                            label: severity === 'high' ? 'Bog Warning' : 'Flat Spot'
+                        });
+                    }
+                }
+            }
+
+            // Detect gradient discontinuities (abrupt slope changes = stumble)
+            for (let i = 2; i < ratios.length - 2; i++) {
+                const gradBefore = (ratios[i].ratio - ratios[i - 2].ratio) / (ratios[i].throttle - ratios[i - 2].throttle);
+                const gradAfter = (ratios[i + 2].ratio - ratios[i].ratio) / (ratios[i + 2].throttle - ratios[i].throttle);
+                const gradChange = Math.abs(gradAfter - gradBefore);
+
+                if (gradChange >= FLAT_SPOT_GRADIENT_THRESHOLD) {
+                    const severity = gradChange >= 0.006 ? 'high' : 'medium';
+                    // Avoid duplicating if already covered by a valley warning
+                    const alreadyCovered = warnings.some(w =>
+                        Math.abs(w.throttleCenter - ratios[i].throttle) < 10
+                    );
+                    if (!alreadyCovered) {
+                        warnings.push({
+                            type: 'gradient',
+                            severity,
+                            throttleStart: ratios[Math.max(0, i - 3)].throttle,
+                            throttleEnd: ratios[Math.min(ratios.length - 1, i + 3)].throttle,
+                            throttleCenter: ratios[i].throttle,
+                            depth: gradChange,
+                            label: severity === 'high' ? 'Bog Warning' : 'Flat Spot'
+                        });
+                    }
+                }
+            }
+
+            return mergeWarnings(warnings);
+        }
+
+        // Consolidate overlapping throttle ranges
+        function mergeWarnings(warnings) {
+            if (warnings.length <= 1) return warnings;
+
+            warnings.sort((a, b) => a.throttleStart - b.throttleStart);
+            const merged = [warnings[0]];
+
+            for (let i = 1; i < warnings.length; i++) {
+                const last = merged[merged.length - 1];
+                if (warnings[i].throttleStart <= last.throttleEnd + 5) {
+                    last.throttleEnd = Math.max(last.throttleEnd, warnings[i].throttleEnd);
+                    if (warnings[i].severity === 'high') last.severity = 'high';
+                    if (warnings[i].depth > last.depth) last.depth = warnings[i].depth;
+                    last.label = last.severity === 'high' ? 'Bog Warning' : 'Flat Spot';
+                } else {
+                    merged.push(warnings[i]);
+                }
+            }
+
+            return merged;
+        }
+
+        // Map warnings to Chart.js annotation plugin box configs
+        function buildAnnotations(warnings) {
+            const annotations = {};
+            const labels = THROTTLE_POSITIONS.map(p => p.label);
+
+            warnings.forEach((w, i) => {
+                const isHigh = w.severity === 'high';
+
+                // Map throttle % to chart x-axis position (0-4 for 5 labels)
+                const xMin = (w.throttleStart / 100) * (labels.length - 1);
+                const xMax = (w.throttleEnd / 100) * (labels.length - 1);
+
+                annotations[`flatspot${i}`] = {
+                    type: 'box',
+                    xMin: xMin,
+                    xMax: xMax,
+                    backgroundColor: isHigh ? 'rgba(220, 38, 38, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                    borderColor: isHigh ? 'rgba(220, 38, 38, 0.6)' : 'rgba(245, 158, 11, 0.6)',
+                    borderWidth: 1,
+                    borderDash: [5, 3],
+                    label: {
+                        display: true,
+                        content: w.label,
+                        position: 'start',
+                        font: { size: 11, weight: 'bold' },
+                        color: isHigh ? 'rgb(220, 38, 38)' : 'rgb(180, 120, 0)'
+                    }
+                };
+            });
+
+            return annotations;
+        }
+
+        // Update warning panel HTML
+        function renderWarnings(warnings) {
+            const panel = document.getElementById('warningPanel');
+            if (!warnings.length) {
+                panel.style.display = 'none';
+                return;
+            }
+
+            panel.style.display = 'block';
+            const hasSevere = warnings.some(w => w.severity === 'high');
+            panel.className = 'warning-panel' + (hasSevere ? ' severe' : '');
+
+            const items = warnings.map(w => {
+                const pctStart = Math.round(w.throttleStart);
+                const pctEnd = Math.round(w.throttleEnd);
+                const icon = w.severity === 'high' ? '⚠' : '●';
+                const typeLabel = w.type === 'valley' ? 'fuel dip (bog)' : 'abrupt transition (stumble)';
+                return `<div class="warning-item"><span class="warning-icon ${w.severity}">${icon}</span> <strong>${w.label}</strong> at ${pctStart}–${pctEnd}% throttle — ${typeLabel}</div>`;
+            }).join('');
+
+            panel.innerHTML = `<div class="warning-title">${hasSevere ? 'Bog/Flat-Spot Detected' : 'Potential Flat Spots'}</div>${items}`;
+        }
+
         // Get primary component affecting this throttle position
         // Based on chart from Keihin CR-Special manual (page 4)
         function getPrimaryComponent(throttle) {
@@ -932,6 +1120,21 @@
                 calculateFuel(p.value, correctionMainJet, correctionPilotJet, correctionSlideCutaway, correctionMAJ, correctionNeedle, correctionMidClip, correctionAirScrew)
             );
 
+            // Detect flat spots in correction curve
+            const currentConfig = {
+                mainJet: currentMainJet, pilotJet: currentPilotJet,
+                slideCutaway: currentSlideCutaway, maj: currentMAJ,
+                needle: currentNeedle, clip: currentMidClip, airScrew: currentAirScrew
+            };
+            const correctionConfig = {
+                mainJet: correctionMainJet, pilotJet: correctionPilotJet,
+                slideCutaway: correctionSlideCutaway, maj: correctionMAJ,
+                needle: correctionNeedle, clip: correctionMidClip, airScrew: correctionAirScrew
+            };
+            const warnings = detectFlatSpots(currentConfig, correctionConfig);
+            const annotations = buildAnnotations(warnings);
+            renderWarnings(warnings);
+
             // Calculate needle band ranges (clip 1 = richest, max clip = leanest)
             const currentClip1 = THROTTLE_POSITIONS.map(p =>
                 calculateFuel(p.value, currentMainJet, currentPilotJet, currentSlideCutaway, currentMAJ, currentNeedle, 1, currentAirScrew)
@@ -1022,6 +1225,9 @@
                     pointHoverRadius: 8
                 }
             ];
+
+            // Update annotations
+            chart.options.plugins.annotation = { annotations };
 
             chart.update();
 
