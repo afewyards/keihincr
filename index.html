@@ -365,9 +365,204 @@
             color: rgb(245, 158, 11);
         }
 
+        /* Mobile Responsive Styles */
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .main-content {
+                padding: 15px;
+            }
+
+            header {
+                padding: 20px 15px;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .subtitle {
+                font-size: 1em;
+            }
+
+            .controls-row {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .config-title {
+                font-size: 1.1em;
+                padding: 8px 12px;
+            }
+
+            .button-row {
+                flex-direction: column;
+            }
+
+            button {
+                padding: 12px;
+                font-size: 1em;
+            }
+
+            .legend {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                padding: 15px;
+            }
+
+            .chart-container {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+
+            .warning-panel {
+                padding: 12px 15px;
+                font-size: 0.9em;
+            }
+
+            .warning-title {
+                font-size: 1em;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+
+            th, td {
+                padding: 10px 8px;
+            }
+
+            /* Make table scrollable on mobile */
+            .data-table {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Ensure dial touch targets are adequate */
+            .dial-container {
+                width: 70px;
+                height: 70px;
+            }
+
+            .dial-group label {
+                font-size: 0.9em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+
+            .main-content {
+                padding: 10px;
+            }
+
+            header {
+                padding: 15px 10px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 5px;
+            }
+
+            .subtitle {
+                font-size: 0.9em;
+            }
+
             .controls-row {
                 grid-template-columns: 1fr;
+                gap: 12px;
+                padding: 12px;
+            }
+
+            .config-title {
+                font-size: 1em;
+                padding: 8px 10px;
+            }
+
+            .control-group label,
+            .dial-group label {
+                font-size: 0.85em;
+                margin-bottom: 6px;
+            }
+
+            .control-group select {
+                padding: 8px;
+                font-size: 0.95em;
+            }
+
+            button {
+                padding: 10px;
+                font-size: 0.95em;
+            }
+
+            .legend {
+                padding: 12px;
+                gap: 8px;
+            }
+
+            .legend-item {
+                font-size: 0.85em;
+            }
+
+            .chart-container {
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+
+            .warning-panel {
+                padding: 10px 12px;
+                font-size: 0.85em;
+            }
+
+            .warning-item {
+                font-size: 0.85em;
+            }
+
+            table {
+                font-size: 0.85em;
+            }
+
+            th {
+                padding: 8px 6px;
+                font-size: 0.8em;
+            }
+
+            td {
+                padding: 8px 6px;
+            }
+
+            /* Reduce dial size slightly on very small screens */
+            .dial-container {
+                width: 65px;
+                height: 65px;
+            }
+
+            /* Adjust chart aspect ratio for mobile */
+            .chart-container canvas {
+                max-height: 300px;
+            }
+        }
+
+        /* Landscape phone orientation */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .controls-row {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) and (orientation: landscape) {
+            .controls-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            h1 {
+                font-size: 1.3em;
             }
         }
     </style>
@@ -1033,7 +1228,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    aspectRatio: 2.5,
+                    aspectRatio: window.innerWidth < 768 ? 1.5 : 2.5,
                     plugins: {
                         legend: {
                             display: false
@@ -1522,6 +1717,19 @@
             document.getElementById('correctionSlideCutaway').addEventListener('change', onSettingChange);
             document.getElementById('correctionNeedle').addEventListener('change', onSettingChange);
             document.getElementById('correctionMAJ').addEventListener('change', onSettingChange);
+
+            // Handle window resize for responsive chart aspect ratio
+            let resizeTimeout;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(function() {
+                    const newAspectRatio = window.innerWidth < 768 ? 1.5 : 2.5;
+                    if (chart && chart.options.aspectRatio !== newAspectRatio) {
+                        chart.options.aspectRatio = newAspectRatio;
+                        chart.resize();
+                    }
+                }, 250);
+            });
         });
     </script>
 </body>
