@@ -140,6 +140,12 @@
             border-radius: 12px;
             border: 2px solid #e2e8f0;
             margin-bottom: 20px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .chart-container canvas {
+            min-width: 600px;
         }
 
         .button-row {
@@ -416,6 +422,7 @@
             .chart-container {
                 padding: 15px;
                 margin-bottom: 15px;
+                box-shadow: 2px 0 4px rgba(102, 126, 234, 0.2) inset;
             }
 
             .warning-panel {
@@ -541,11 +548,6 @@
             .dial-container {
                 width: 65px;
                 height: 65px;
-            }
-
-            /* Adjust chart aspect ratio for mobile */
-            .chart-container canvas {
-                max-height: 300px;
             }
         }
 
@@ -1228,7 +1230,7 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    aspectRatio: window.innerWidth < 768 ? 1.5 : 2.5,
+                    aspectRatio: 2.5,
                     plugins: {
                         legend: {
                             display: false
@@ -1718,18 +1720,6 @@
             document.getElementById('correctionNeedle').addEventListener('change', onSettingChange);
             document.getElementById('correctionMAJ').addEventListener('change', onSettingChange);
 
-            // Handle window resize for responsive chart aspect ratio
-            let resizeTimeout;
-            window.addEventListener('resize', function() {
-                clearTimeout(resizeTimeout);
-                resizeTimeout = setTimeout(function() {
-                    const newAspectRatio = window.innerWidth < 768 ? 1.5 : 2.5;
-                    if (chart && chart.options.aspectRatio !== newAspectRatio) {
-                        chart.options.aspectRatio = newAspectRatio;
-                        chart.resize();
-                    }
-                }, 250);
-            });
         });
     </script>
 </body>
