@@ -192,13 +192,6 @@
             border-radius: 2px;
         }
 
-        .legend-band {
-            width: 30px;
-            height: 16px;
-            margin-right: 10px;
-            border-radius: 3px;
-            opacity: 0.3;
-        }
 
 
         .config-section {
@@ -649,6 +642,11 @@
                     </div>
 
                     <div class="control-group">
+                        <label for="currentClip">Clip</label>
+                        <select id="currentClip"></select>
+                    </div>
+
+                    <div class="control-group">
                         <label for="currentMAJ">Air Jet</label>
                         <select id="currentMAJ">
                             <option value="150">150</option>
@@ -780,6 +778,11 @@
                     </div>
 
                     <div class="control-group">
+                        <label for="correctionClip">Clip</label>
+                        <select id="correctionClip"></select>
+                    </div>
+
+                    <div class="control-group">
                         <label for="correctionMAJ">Air Jet</label>
                         <select id="correctionMAJ">
                             <option value="150">150</option>
@@ -861,19 +864,11 @@
             <div class="legend">
                 <div class="legend-item">
                     <div class="legend-line" style="background: rgb(59, 130, 246);"></div>
-                    <span id="currentClipLabel">Current (clip 4)</span>
+                    <span>Current</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-line" style="background: rgb(34, 197, 94);"></div>
-                    <span id="correctionClipLabel">Correction (clip 4)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-band" style="background: rgb(59, 130, 246);"></div>
-                    <span id="currentBandLabel">Current clip range (1-7)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-band" style="background: rgb(34, 197, 94);"></div>
-                    <span id="correctionBandLabel">Correction clip range (1-7)</span>
+                    <span>Correction</span>
                 </div>
             </div>
         </div>
@@ -1233,10 +1228,7 @@
                             intersect: false,
                             callbacks: {
                                 label: function(context) {
-                                    if (context.dataset.label && !context.dataset.label.includes('Band')) {
-                                        return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
-                                    }
-                                    return null;
+                                    return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
                                 }
                             }
                         },
@@ -1278,6 +1270,30 @@
             });
         }
 
+        // Populate clip position options based on selected needle
+        function populateClipOptions(needleSelectId, clipSelectId) {
+            const needle = document.getElementById(needleSelectId).value;
+            const needleData = NEEDLES[needle] || NEEDLES['YY0'];
+            const clipSelect = document.getElementById(clipSelectId);
+            const currentValue = clipSelect.value;
+            const midClip = Math.ceil(needleData.clips / 2);
+            clipSelect.innerHTML = '';
+            for (let i = 1; i <= needleData.clips; i++) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                let label = i;
+                if (i === 1) label += ' (top, rich)';
+                else if (i === needleData.clips) label += ' (bottom, lean)';
+                opt.textContent = label;
+                if (parseInt(currentValue) === i) opt.selected = true;
+                clipSelect.appendChild(opt);
+            }
+            // If previous value is out of range, default to mid clip
+            if (!currentValue || parseInt(currentValue) > needleData.clips) {
+                clipSelect.value = midClip;
+            }
+        }
+
         // Update chart and table
         function updateVisualization() {
             // Current configuration
@@ -1296,102 +1312,35 @@
             const correctionMAJ = parseFloat(document.getElementById('correctionMAJ').value);
             const correctionAirScrew = parseFloat(document.getElementById('correctionAirScrewDial').dataset.value);
 
-            // Get needle data for clip counts
-            const currentNeedleData = NEEDLES[currentNeedle] || NEEDLES['YY0'];
-            const correctionNeedleData = NEEDLES[correctionNeedle] || NEEDLES['YY0'];
-            const currentMidClip = Math.ceil(currentNeedleData.clips / 2);
-            const correctionMidClip = Math.ceil(correctionNeedleData.clips / 2);
+            // Get clip positions from selects
+            const currentClip = parseInt(document.getElementById('currentClip').value);
+            const correctionClip = parseInt(document.getElementById('correctionClip').value);
 
-            // Calculate fuel at middle clip position for main lines
+            // Calculate fuel at selected clip position
             const currentFuels = THROTTLE_POSITIONS.map(p =>
-                calculateFuel(p.value, currentMainJet, currentPilotJet, currentSlideCutaway, currentMAJ, currentNeedle, currentMidClip, currentAirScrew)
+                calculateFuel(p.value, currentMainJet, currentPilotJet, currentSlideCutaway, currentMAJ, currentNeedle, currentClip, currentAirScrew)
             );
             const correctionFuels = THROTTLE_POSITIONS.map(p =>
-                calculateFuel(p.value, correctionMainJet, correctionPilotJet, correctionSlideCutaway, correctionMAJ, correctionNeedle, correctionMidClip, correctionAirScrew)
+                calculateFuel(p.value, correctionMainJet, correctionPilotJet, correctionSlideCutaway, correctionMAJ, correctionNeedle, correctionClip, correctionAirScrew)
             );
 
             // Detect flat spots in correction curve
             const currentConfig = {
                 mainJet: currentMainJet, pilotJet: currentPilotJet,
                 slideCutaway: currentSlideCutaway, maj: currentMAJ,
-                needle: currentNeedle, clip: currentMidClip, airScrew: currentAirScrew
+                needle: currentNeedle, clip: currentClip, airScrew: currentAirScrew
             };
             const correctionConfig = {
                 mainJet: correctionMainJet, pilotJet: correctionPilotJet,
                 slideCutaway: correctionSlideCutaway, maj: correctionMAJ,
-                needle: correctionNeedle, clip: correctionMidClip, airScrew: correctionAirScrew
+                needle: correctionNeedle, clip: correctionClip, airScrew: correctionAirScrew
             };
             const warnings = detectFlatSpots(currentConfig, correctionConfig);
             const annotations = buildAnnotations(warnings);
             renderWarnings(warnings);
 
-            // Calculate needle band ranges (clip 1 = richest, max clip = leanest)
-            const currentClip1 = THROTTLE_POSITIONS.map(p =>
-                calculateFuel(p.value, currentMainJet, currentPilotJet, currentSlideCutaway, currentMAJ, currentNeedle, 1, currentAirScrew)
-            );
-            const currentClipMax = THROTTLE_POSITIONS.map(p =>
-                calculateFuel(p.value, currentMainJet, currentPilotJet, currentSlideCutaway, currentMAJ, currentNeedle, currentNeedleData.clips, currentAirScrew)
-            );
-            const correctionClip1 = THROTTLE_POSITIONS.map(p =>
-                calculateFuel(p.value, correctionMainJet, correctionPilotJet, correctionSlideCutaway, correctionMAJ, correctionNeedle, 1, correctionAirScrew)
-            );
-            const correctionClipMax = THROTTLE_POSITIONS.map(p =>
-                calculateFuel(p.value, correctionMainJet, correctionPilotJet, correctionSlideCutaway, correctionMAJ, correctionNeedle, correctionNeedleData.clips, correctionAirScrew)
-            );
-
             // Update chart datasets
             chart.data.datasets = [
-                // Current needle band (fill between clip 1 and clip max)
-                {
-                    label: 'Current Band Upper',
-                    data: currentClipMax,
-                    borderColor: 'rgba(59, 130, 246, 0.3)',
-                    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-                    borderWidth: 1,
-                    borderDash: [4, 4],
-                    tension: 0.4,
-                    fill: '+1',
-                    pointRadius: 0,
-                    pointHoverRadius: 0
-                },
-                {
-                    label: 'Current Band Lower',
-                    data: currentClip1,
-                    borderColor: 'rgba(59, 130, 246, 0.3)',
-                    backgroundColor: 'transparent',
-                    borderWidth: 1,
-                    borderDash: [4, 4],
-                    tension: 0.4,
-                    fill: false,
-                    pointRadius: 0,
-                    pointHoverRadius: 0
-                },
-                // Correction needle band
-                {
-                    label: 'Correction Band Upper',
-                    data: correctionClipMax,
-                    borderColor: 'rgba(34, 197, 94, 0.3)',
-                    backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                    borderWidth: 1,
-                    borderDash: [4, 4],
-                    tension: 0.4,
-                    fill: '+1',
-                    pointRadius: 0,
-                    pointHoverRadius: 0
-                },
-                {
-                    label: 'Correction Band Lower',
-                    data: correctionClip1,
-                    borderColor: 'rgba(34, 197, 94, 0.3)',
-                    backgroundColor: 'transparent',
-                    borderWidth: 1,
-                    borderDash: [4, 4],
-                    tension: 0.4,
-                    fill: false,
-                    pointRadius: 0,
-                    pointHoverRadius: 0
-                },
-                // Main lines at clip 4
                 {
                     label: 'Current',
                     data: currentFuels,
@@ -1420,12 +1369,6 @@
             chart.options.plugins.annotation = { annotations };
 
             chart.update();
-
-            // Update legend labels
-            document.getElementById('currentClipLabel').textContent = `Current (clip ${currentMidClip})`;
-            document.getElementById('correctionClipLabel').textContent = `Correction (clip ${correctionMidClip})`;
-            document.getElementById('currentBandLabel').textContent = `Current clip range (1-${currentNeedleData.clips})`;
-            document.getElementById('correctionBandLabel').textContent = `Correction clip range (1-${correctionNeedleData.clips})`;
 
             // Update table
             const tableBody = document.getElementById('dataTableBody');
@@ -1458,6 +1401,8 @@
             document.getElementById('correctionPilotJet').value = document.getElementById('currentPilotJet').value;
             document.getElementById('correctionSlideCutaway').value = document.getElementById('currentSlideCutaway').value;
             document.getElementById('correctionNeedle').value = document.getElementById('currentNeedle').value;
+            populateClipOptions('correctionNeedle', 'correctionClip');
+            document.getElementById('correctionClip').value = document.getElementById('currentClip').value;
             document.getElementById('correctionMAJ').value = document.getElementById('currentMAJ').value;
             // Copy air screw
             const currentAirScrew = parseFloat(document.getElementById('currentAirScrewDial').dataset.value);
@@ -1476,6 +1421,7 @@
                     pilotJet: document.getElementById('currentPilotJet').value,
                     slideCutaway: document.getElementById('currentSlideCutaway').value,
                     needle: document.getElementById('currentNeedle').value,
+                    clip: document.getElementById('currentClip').value,
                     maj: document.getElementById('currentMAJ').value,
                     airScrew: document.getElementById('currentAirScrewDial').dataset.value
                 },
@@ -1484,6 +1430,7 @@
                     pilotJet: document.getElementById('correctionPilotJet').value,
                     slideCutaway: document.getElementById('correctionSlideCutaway').value,
                     needle: document.getElementById('correctionNeedle').value,
+                    clip: document.getElementById('correctionClip').value,
                     maj: document.getElementById('correctionMAJ').value,
                     airScrew: document.getElementById('correctionAirScrewDial').dataset.value
                 }
@@ -1502,6 +1449,8 @@
                     document.getElementById('currentPilotJet').value = settings.current.pilotJet;
                     document.getElementById('currentSlideCutaway').value = settings.current.slideCutaway;
                     document.getElementById('currentNeedle').value = settings.current.needle;
+                    populateClipOptions('currentNeedle', 'currentClip');
+                    if (settings.current.clip) document.getElementById('currentClip').value = settings.current.clip;
                     document.getElementById('currentMAJ').value = settings.current.maj;
                     if (settings.current.airScrew) {
                         setDialValue('currentAirScrewDial', parseFloat(settings.current.airScrew));
@@ -1512,6 +1461,8 @@
                     document.getElementById('correctionPilotJet').value = settings.correction.pilotJet;
                     document.getElementById('correctionSlideCutaway').value = settings.correction.slideCutaway;
                     document.getElementById('correctionNeedle').value = settings.correction.needle;
+                    populateClipOptions('correctionNeedle', 'correctionClip');
+                    if (settings.correction.clip) document.getElementById('correctionClip').value = settings.correction.clip;
                     document.getElementById('correctionMAJ').value = settings.correction.maj;
                     if (settings.correction.airScrew) {
                         setDialValue('correctionAirScrewDial', parseFloat(settings.correction.airScrew));
@@ -1695,6 +1646,10 @@
             initDial('currentAirScrewDial');
             initDial('correctionAirScrewDial');
 
+            // Populate clip options before loading settings
+            populateClipOptions('currentNeedle', 'currentClip');
+            populateClipOptions('correctionNeedle', 'correctionClip');
+
             loadSettings();
             initChart();
             updateVisualization();
@@ -1703,14 +1658,22 @@
             document.getElementById('currentMainJet').addEventListener('change', onSettingChange);
             document.getElementById('currentPilotJet').addEventListener('change', onSettingChange);
             document.getElementById('currentSlideCutaway').addEventListener('change', onSettingChange);
-            document.getElementById('currentNeedle').addEventListener('change', onSettingChange);
+            document.getElementById('currentNeedle').addEventListener('change', function() {
+                populateClipOptions('currentNeedle', 'currentClip');
+                onSettingChange();
+            });
+            document.getElementById('currentClip').addEventListener('change', onSettingChange);
             document.getElementById('currentMAJ').addEventListener('change', onSettingChange);
 
             // Add event listeners for correction configuration
             document.getElementById('correctionMainJet').addEventListener('change', onSettingChange);
             document.getElementById('correctionPilotJet').addEventListener('change', onSettingChange);
             document.getElementById('correctionSlideCutaway').addEventListener('change', onSettingChange);
-            document.getElementById('correctionNeedle').addEventListener('change', onSettingChange);
+            document.getElementById('correctionNeedle').addEventListener('change', function() {
+                populateClipOptions('correctionNeedle', 'correctionClip');
+                onSettingChange();
+            });
+            document.getElementById('correctionClip').addEventListener('change', onSettingChange);
             document.getElementById('correctionMAJ').addEventListener('change', onSettingChange);
 
             // Update chart aspect ratio on resize
