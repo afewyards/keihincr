@@ -1282,8 +1282,8 @@
                 const opt = document.createElement('option');
                 opt.value = i;
                 let label = i;
-                if (i === 1) label += ' (top, rich)';
-                else if (i === needleData.clips) label += ' (bottom, lean)';
+                if (i === 1) label += ' (bottom, rich)';
+                else if (i === needleData.clips) label += ' (top, lean)';
                 opt.textContent = label;
                 if (parseInt(currentValue) === i) opt.selected = true;
                 clipSelect.appendChild(opt);
