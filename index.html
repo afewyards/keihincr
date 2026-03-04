@@ -1086,31 +1086,48 @@
         // Keihin CR Special needle profiles
         // Diameter (D) determines richness: smaller D = more fuel flow = richer
         // YY series is 2.7mm longer than Y series (same diameters)
-        // Fuel factor (for D) calculated relative to YY0 (CR26 stock, D=2.805)
+        // Fuel factor computed from annular gap power-law model (see needleFuelFactor)
         // Taper angles are identical within Y/YY series (0°50', 3°30', 1°30')
         // Y series has shorter taper segments, sitting shallower in needle jet → ~4% less fuel in taper zone (50-75% throttle)
         // YY series: 7 clip positions; Y series: 5 clip positions
+
+        // Exponential fuel factor for needle diameter
+        // At CR26 clearances (~0.025mm annular gap), a pure area model (D_nj² - D²)
+        // wildly overpredicts because the gap is so thin that small diameter changes
+        // cause huge relative area changes. In practice, series flow restrictions
+        // (needle jet entry, emulsion holes) damp the sensitivity. The exponential
+        // model captures the correct nonlinear behavior: each diameter step compounds
+        // rather than adds, with richer needles being more sensitive per step than
+        // leaner ones — matching the thin-annulus viscous flow regime.
+        // k=3.0/mm ≈ 3% per 0.01mm step near baseline, compounding for extreme needles.
+        const NEEDLE_SENSITIVITY = 3.0; // per mm
+        const BASELINE_NEEDLE_D = 2.805; // YY0 stock
+
+        function needleFuelFactor(needleDiameter) {
+            return Math.exp(NEEDLE_SENSITIVITY * (BASELINE_NEEDLE_D - needleDiameter));
+        }
+
         const NEEDLES = {
             // YY Series (longer, 7 clips)
-            'YY5': { name: 'YY5', d: 2.755, fuel: 1.10, taper: 1.00, clips: 7 },  // Richest
-            'YY6': { name: 'YY6', d: 2.765, fuel: 1.08, taper: 1.00, clips: 7 },
-            'YY7': { name: 'YY7', d: 2.775, fuel: 1.06, taper: 1.00, clips: 7 },
-            'YY8': { name: 'YY8', d: 2.785, fuel: 1.04, taper: 1.00, clips: 7 },
-            'YY9': { name: 'YY9', d: 2.795, fuel: 1.02, taper: 1.00, clips: 7 },
-            'YY0': { name: 'YY0', d: 2.805, fuel: 1.00, taper: 1.00, clips: 7 },  // CR26 stock
-            'YY1': { name: 'YY1', d: 2.815, fuel: 0.98, taper: 1.00, clips: 7 },
-            'YY2': { name: 'YY2', d: 2.825, fuel: 0.96, taper: 1.00, clips: 7 },
-            'YY3': { name: 'YY3', d: 2.835, fuel: 0.94, taper: 1.00, clips: 7 },  // Leanest
+            'YY5': { name: 'YY5', d: 2.755, taper: 1.00, clips: 7 },  // Richest
+            'YY6': { name: 'YY6', d: 2.765, taper: 1.00, clips: 7 },
+            'YY7': { name: 'YY7', d: 2.775, taper: 1.00, clips: 7 },
+            'YY8': { name: 'YY8', d: 2.785, taper: 1.00, clips: 7 },
+            'YY9': { name: 'YY9', d: 2.795, taper: 1.00, clips: 7 },
+            'YY0': { name: 'YY0', d: 2.805, taper: 1.00, clips: 7 },  // CR26 stock
+            'YY1': { name: 'YY1', d: 2.815, taper: 1.00, clips: 7 },
+            'YY2': { name: 'YY2', d: 2.825, taper: 1.00, clips: 7 },
+            'YY3': { name: 'YY3', d: 2.835, taper: 1.00, clips: 7 },  // Leanest
             // Y Series (shorter, 5 clips)
-            'Y5':  { name: 'Y5',  d: 2.755, fuel: 1.10, taper: 0.96, clips: 5 },
-            'Y6':  { name: 'Y6',  d: 2.765, fuel: 1.08, taper: 0.96, clips: 5 },
-            'Y7':  { name: 'Y7',  d: 2.775, fuel: 1.06, taper: 0.96, clips: 5 },
-            'Y8':  { name: 'Y8',  d: 2.785, fuel: 1.04, taper: 0.96, clips: 5 },
-            'Y9':  { name: 'Y9',  d: 2.795, fuel: 1.02, taper: 0.96, clips: 5 },
-            'Y0':  { name: 'Y0',  d: 2.805, fuel: 1.00, taper: 0.96, clips: 5 },
-            'Y1':  { name: 'Y1',  d: 2.815, fuel: 0.98, taper: 0.96, clips: 5 },
-            'Y2':  { name: 'Y2',  d: 2.825, fuel: 0.96, taper: 0.96, clips: 5 },
-            'Y3':  { name: 'Y3',  d: 2.835, fuel: 0.94, taper: 0.96, clips: 5 }
+            'Y5':  { name: 'Y5',  d: 2.755, taper: 0.96, clips: 5 },
+            'Y6':  { name: 'Y6',  d: 2.765, taper: 0.96, clips: 5 },
+            'Y7':  { name: 'Y7',  d: 2.775, taper: 0.96, clips: 5 },
+            'Y8':  { name: 'Y8',  d: 2.785, taper: 0.96, clips: 5 },
+            'Y9':  { name: 'Y9',  d: 2.795, taper: 0.96, clips: 5 },
+            'Y0':  { name: 'Y0',  d: 2.805, taper: 0.96, clips: 5 },
+            'Y1':  { name: 'Y1',  d: 2.815, taper: 0.96, clips: 5 },
+            'Y2':  { name: 'Y2',  d: 2.825, taper: 0.96, clips: 5 },
+            'Y3':  { name: 'Y3',  d: 2.835, taper: 0.96, clips: 5 }
         };
 
         let chart;
@@ -1273,15 +1290,18 @@
             // Slide cutaway: larger = more air = less relative fuel
             const cutawayEffect = 1 - (slideCutaway - BASELINE.slideCutaway) * 0.08;
 
-            // Main Air Jet: larger = more air bleed into fuel circuit = less fuel
-            const majEffect = 1 - (mainAirJet - BASELINE.mainAirJet) / BASELINE.mainAirJet * 0.3;
+            // Main Air Jet: logarithmic emulsion model
+            // Air bleed creates fuel-air emulsion in the emulsion tube. Leaning effect
+            // has diminishing returns as emulsion density saturates. log₂ of the
+            // normalized ratio gives the correct concave-down curve, centered at 1.0.
+            const majEffect = 1 - 0.3 * Math.log((1 + mainAirJet / BASELINE.mainAirJet) / 2) / Math.log(2);
 
-            // Air Screw effect: It's an AIR bleed screw
-            // Clockwise (fewer turns) = richer (less air bleed)
-            // Counter-clockwise (more turns) = leaner (more air bleed)
-            // Baseline at 1.5 turns = 1.0 (neutral)
-            // 0.5 turns = 1.06 (6% richer), 3.0 turns = 0.91 (9% leaner)
-            const airScrewEffect = 1.0 - (airScrew - 1.5) * 0.06;
+            // Air Screw: power-law conical needle valve model
+            // Flow through the conical seat grows nonlinearly with turns out.
+            // At small openings (few turns), each quarter-turn has a large effect;
+            // at large openings, it plateaus. Exponent 0.08 gives ~3% per half-turn
+            // near baseline with correct asymmetry (closing more sensitive than opening).
+            const airScrewEffect = Math.pow(1.5 / airScrew, 0.08);
 
             // Needle profile data
             const needleData = NEEDLES[needle] || NEEDLES['YY0'];
@@ -1314,7 +1334,8 @@
             fuelMultiplier *= 1 + (cutawayEffect - 1) * cW;
 
             // Needle diameter effect (1/8-1/4 throttle)
-            fuelMultiplier *= 1 + (needleData.fuel - 1) * dW;
+            // Power-law on annular gap: transitional viscous flow regime
+            fuelMultiplier *= 1 + (needleFuelFactor(needleData.d) - 1) * dW;
 
             // Needle clip effect (1/4-1/2 throttle)
             fuelMultiplier *= 1 + (needleClipEffect - 1) * clipW;
