@@ -1231,48 +1231,48 @@
 
         // Influence weighting functions
         function pilotWeight(throttle) {
-            // Strong at idle, fades by ~30%
-            return Math.exp(-throttle / 12);
+            // ~43% at 1/4 throttle, fades by 1/2
+            return Math.exp(-throttle / 30);
         }
 
         function airScrewWeight(throttle) {
-            // Air screw affects 0-12% throttle (idle zone), same decay as pilot jet
-            return Math.exp(-throttle / 12);
+            // Slow-jet/air-screw curve, same slow decay as pilot
+            return Math.exp(-throttle / 30);
         }
 
         function cutawayWeight(throttle) {
-            // Bell curve centered at 20%, width 15
-            return Math.exp(-Math.pow(throttle - 20, 2) / (2 * 15 * 15));
+            // Bell curve centered at ~1/8 throttle (13%), width 15
+            return Math.exp(-Math.pow(throttle - 13, 2) / (2 * 15 * 15));
         }
 
-        // Needle D (diameter): affects 1/8-1/4 throttle (12-25%)
+        // Needle D (diameter): peaks at 1/4 throttle (25%)
         function needleDWeight(throttle) {
-            return Math.exp(-Math.pow(throttle - 18, 2) / (2 * 10 * 10));
+            return Math.exp(-Math.pow(throttle - 25, 2) / (2 * 10 * 10));
         }
 
-        // Needle Clip/L1: affects 1/4-1/2 throttle (25-50%)
+        // Needle Clip/L1: peaks at 1/2 throttle (50%)
         function needleClipWeight(throttle) {
-            return Math.exp(-Math.pow(throttle - 37, 2) / (2 * 15 * 15));
+            return Math.exp(-Math.pow(throttle - 50, 2) / (2 * 15 * 15));
         }
 
-        // Needle Taper: affects 1/2-3/4 throttle (50-75%)
+        // Needle Taper: peaks at 3/4 throttle (75%)
         function needleTaperWeight(throttle) {
-            return Math.exp(-Math.pow(throttle - 62, 2) / (2 * 15 * 15));
+            return Math.exp(-Math.pow(throttle - 75, 2) / (2 * 15 * 15));
         }
 
         function mainWeight(throttle) {
-            // Smooth step from 60 to 100
-            if (throttle <= 60) return 0;
+            // Smooth step from 50 to 100
+            if (throttle <= 50) return 0;
             if (throttle >= 100) return 1;
-            const t = (throttle - 60) / 40;
+            const t = (throttle - 50) / 50;
             return t * t * (3 - 2 * t); // smoothstep
         }
 
         function majWeight(throttle) {
-            // Smooth step from 70 to 100
-            if (throttle <= 70) return 0;
+            // Smooth step from 60 to 100
+            if (throttle <= 60) return 0;
             if (throttle >= 100) return 1;
-            const t = (throttle - 70) / 30;
+            const t = (throttle - 60) / 40;
             return t * t * (3 - 2 * t); // smoothstep
         }
 
